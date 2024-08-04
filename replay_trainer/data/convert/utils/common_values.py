@@ -1,0 +1,14 @@
+# Add these values because they're only in rlgym v2:
+TICKS_PER_SECOND = 120
+DOUBLEJUMP_MAX_DELAY = 1.25
+FLIP_TORQUE_TIME = 0.65
+GRAVITY = 650  # uu/s^2
+GOAL_CENTER_TO_POST = 892.755
+
+
+OCTANE = 0
+DOMINUS = 1
+PLANK = 2
+BREAKOUT = 3
+HYBRID = 4
+MERC = 5
