@@ -2,6 +2,9 @@ from setuptools import setup, find_packages
 import subprocess
 import os
 
+# you'll need to manually install rlgym_sim
+# pip install git+https://github.com/AechPro/rocket-league-gym-sim@main
+
 setup(
     name='replay_trainer',  # Replace with your package name
     version='0.1.0',
@@ -11,7 +14,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'torch', 'numpy', 'gym', 'tqdm', 'rich', 'pandas', 'wandb', 'scipy', 'matplotlib',
-        'python-dotenv'
+        'python-dotenv', 'rocketsim', 'numba', 'scipy', 'requests', 'pyarrow'
     ],
     include_package_data=True,
     python_requires='>=3.7',

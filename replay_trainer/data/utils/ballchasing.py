@@ -6,7 +6,7 @@ from typing import List
 dotenv.load_dotenv()
 BALLCHASING_API_KEY = os.getenv("BALLCHASING_API_KEY")
 
-def get_replay_ids(ballchasing_params: dict = {}) -> List[str]:
+def get_replay_ids(ballchasing_params: dict = {}, verbose: bool = False) -> List[str]:
     if ballchasing_params == {}:
         ballchasing_params = {
         # "playlist": "ranked-duels",
@@ -23,6 +23,9 @@ def get_replay_ids(ballchasing_params: dict = {}) -> List[str]:
 
     if response.status_code == 200:
         replay_info = response.json()
+        if verbose:
+            for replay in replay_info["list"]:
+                print(replay["replay_title"])
         return [replay["id"] for replay in replay_info["list"]]
     else:
         print(f"Error: {response.status_code}, {response.text}")

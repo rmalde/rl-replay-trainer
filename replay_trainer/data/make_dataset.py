@@ -15,17 +15,17 @@ warnings.filterwarnings("ignore", category=UserWarning, message="rich is experim
 def download_replays(replay_dir: str, n_download: int):
     ballchasing_params = {
         "playlist": "ranked-duels",
-        # # "season": "f15",
-        # "pro": "true", 
+        "season": "f13", 
         # "match-result": "win",
-        # "min-rank": "grand-champion",
-        "count": n_download,  # Number of replays to return
+        "min-rank": "grand-champion",
+        "max-rank": "grand-champion",
+        "count": n_download,
     }
-    replay_ids = get_replay_ids(ballchasing_params)
+    replay_ids = get_replay_ids(ballchasing_params, verbose=True)
+    print(f"Found {len(replay_ids)} replays")
     if len(replay_ids) == 0:
         print("No replays found, adjust ballchasing_params")
         sys.exit(1)
-    print(f"Found {len(replay_ids)} replays")
     print(f"Downloading replays to {replay_dir}...")
 
     if not os.path.exists(replay_dir):
@@ -42,12 +42,17 @@ def main(args):
     # download fresh replays
     if args.n_download is not None:
         download_replays(args.replay_dir, args.n_download)
+
+    if not os.path.exists(args.replay_dir) or len(os.listdir(args.replay_dir)) == 0:
+        print("No replays found in replay_dir, make sure to specify --n_download")
+        sys.exit(1)
     
     # convert to rlgym replays
     print("Converting replays to action and obs...")
     for replay_id in tqdm(os.listdir(args.replay_dir)):
-        replay_path = os.path.abspath(os.path.join(args.replay_dir, replay_id))
-        parsed_replay = ParsedReplay.load(replay_path)
+        replay_path = os.path.abspath(os.path.join(args.replay_dir, replay_id))  
+
+        parsed_replay = ParsedReplay.load(replay_path, from_wsl=True)
 
         replay_frames = replay_to_rlgym(parsed_replay)
 

@@ -1,5 +1,6 @@
 # project specific
 dataset/
+replay_trainer/data/convert/utils/collision_meshes/
 
 
 # Byte-compiled / optimized / DLL files
