@@ -1,6 +1,8 @@
 # project specific
 dataset/
 replay_trainer/data/convert/utils/collision_meshes/
+checkpoints/
+wandb/
 
 
 # Byte-compiled / optimized / DLL files

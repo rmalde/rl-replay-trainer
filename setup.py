@@ -13,8 +13,8 @@ setup(
     url='https://github.com/rmalde/rl-replay-trainer',  # Replace with your project's URL
     packages=find_packages(),
     install_requires=[
-        'torch', 'numpy', 'gym', 'tqdm', 'rich', 'pandas', 'wandb', 'scipy', 'matplotlib',
-        'python-dotenv', 'rocketsim', 'numba', 'scipy', 'requests', 'pyarrow'
+        'torch', 'numpy', 'tqdm', 'rich', 'wandb',
+        'python-dotenv', 'scikit-learn'
     ],
     include_package_data=True,
     python_requires='>=3.7',
