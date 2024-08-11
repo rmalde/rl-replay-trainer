@@ -75,7 +75,9 @@ class Trainer:
                     
                     self.optimizer.zero_grad()
 
+                    # (b, seq_len, num_actions)
                     outputs = self.model(actions, obs)
+                    # outputs = outputs[:, -1, :]
 
                     loss = self.criterion(outputs, target)
                     loss.backward()
@@ -134,6 +136,7 @@ class Trainer:
 
                 # Forward pass
                 outputs = self.model(actions, obs)
+                # outputs = outputs[:, -1, :]
 
                 # Compute loss
                 loss = self.criterion(outputs, target)

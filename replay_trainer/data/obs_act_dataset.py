@@ -21,7 +21,11 @@ class ObsActDataset(Dataset):
         self.dataset_dir = dataset_dir
         self.sequence_length = sequence_length
         self.data = self._load_data()
-        
+
+        # set obs and act space for external reference
+        self.obs_size = self.data[0][0]['obs'].shape[1]
+        self.action_size = 90
+
     def _load_data(self):
         data = []
         for filename in tqdm(self.filenames):
