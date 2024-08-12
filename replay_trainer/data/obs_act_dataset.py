@@ -9,7 +9,7 @@ from tqdm import TqdmExperimentalWarning
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 class ObsActDataset(Dataset):
-    def __init__(self, dataset_dir, filenames, sequence_length=30):
+    def __init__(self, dataset_dir, filenames, sequence_length=30, device='cpu'):
         """
         Args:
             dataset_dir (str): Path to the dataset, ie 'dataset/ssl-1v1-100'
@@ -20,11 +20,13 @@ class ObsActDataset(Dataset):
         self.filenames = filenames
         self.dataset_dir = dataset_dir
         self.sequence_length = sequence_length
+        self.device = device
         self.data = self._load_data()
 
         # set obs and act space for external reference
         self.obs_size = self.data[0][0]['obs'].shape[1]
         self.action_size = 90
+
 
     def _load_data(self):
         data = []
@@ -45,6 +47,9 @@ class ObsActDataset(Dataset):
             padded_obs = torch.zeros((self.sequence_length + len(obs), num_obs), dtype=torch.float)
             padded_actions[self.sequence_length:] = actions
             padded_obs[self.sequence_length:] = obs
+
+            padded_actions = padded_actions.to(self.device)
+            padded_obs = padded_obs.to(self.device)
 
             # Create sequences of the previous 10 timesteps of actions and obs
             for i in range(len(actions)):
