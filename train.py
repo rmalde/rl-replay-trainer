@@ -3,50 +3,32 @@ from torch.utils.data import DataLoader
 import os
 from sklearn.model_selection import train_test_split
 
-from replay_trainer.data import ObsActDataset
+from replay_trainer.data import ObsActDataset, get_obsact_dataloaders
 from replay_trainer.models import FCN, Transformer
 from replay_trainer import Trainer
+
 
 
 def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    print("Loading train and test datasets...")
-    # initialize data
-    filenames = []
-    for filename in os.listdir(os.path.join(dataset_dir, "actions")):
-        filenames.append(filename.split(".")[0])
-
-    # TEMP
-    # filenames = filenames[:80]
-    train_filenames, test_filenames = train_test_split(filenames, test_size=0.2)
-
     sequence_length = 10
-    train_dataset = ObsActDataset(dataset_dir, train_filenames, sequence_length, device=device)
-    test_dataset = ObsActDataset(dataset_dir, test_filenames, sequence_length, device=device)
-
-    train_loader = DataLoader(train_dataset, batch_size=1024, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1024, shuffle=False)
-
-    print("Train and test datasets loaded.")
-    print(f"Train dataset size: {len(train_dataset)}")
-    print(f"Test dataset size: {len(test_dataset)}")
-
+    train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(dataset_dir, sequence_length)
 
     trainer_config = {
-        "learning_rate": 2e-5,
+        "learning_rate": 5e-4,
         "num_epochs": 100_000,
-        "wandb_project": "rl-replay-trainer",
-        # "wandb_project": None,
+        # "wandb_project": "rl-replay-trainer",
+        "wandb_project": None,
     }
     model_config = {
         "d_model": 128,
         "num_heads": 8,
         "d_ff": 512,
-        "attn_pdrop": 0.3,
-        "residual_pdrop": 0.3,
-        "num_layers": 8,
+        "attn_pdrop": 0.2,
+        "residual_pdrop": 0.2,
+        "num_layers": 16,
     }
 
     print("Initializing model...")
@@ -55,9 +37,9 @@ def train(dataset_dir):
     #             sequence_length=train_dataset.sequence_length,
     #             config=model_config)
     model = Transformer(
-        obs_size=train_dataset.obs_size,
-        action_size=train_dataset.action_size,
-        sequence_length=train_dataset.sequence_length,
+        obs_size=obs_size,
+        action_size=action_size,
+        sequence_length=sequence_length,
         config=model_config,
     )
 
@@ -68,4 +50,5 @@ def train(dataset_dir):
 
 
 if __name__ == "__main__":
-    train("dataset/ssl-1v1-80-trig")
+    dataset_dir = "dataset/ssl-1v1-40-trig-v2"
+    train(dataset_dir)

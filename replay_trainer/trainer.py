@@ -2,34 +2,28 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.nn.utils import clip_grad_norm_
 
 from tqdm.rich import tqdm
 
-from replay_trainer.util import WandbLogger, CheckpointManager
-
-
-def custom_loss(outputs, target, last_actions):
-    # outputs: (batch_size, num_actions)
-    # target: (batch_size)
-    # last_actions: (batch_size, 1)
-    ce_loss = F.cross_entropy(outputs, target)
-
-    # penalize repeated previous action when you are wrong
-    probs = F.softmax(outputs, dim=1)
-    repeated_prob = probs.gather(1, last_actions).squeeze()
-    changed_mask = (target != last_actions.squeeze()).float()
-    wrong_repetition = (repeated_prob * changed_mask).sum()
-    # penalty_strength = 200.0
-    penalty_strength = 0.0
-    penalty_term = penalty_strength * wrong_repetition / outputs.shape[0]
-
-    return ce_loss + penalty_term
-
+from replay_trainer.util import (
+    WandbLogger,
+    CheckpointManager,
+    ClassificationMetrics,
+    RegressionMetrics,
+)
 
 
 class Trainer:
     def __init__(
-        self, model, train_loader, test_loader, config: dict = None, device="cpu"
+        self,
+        model,
+        train_loader,
+        test_loader,
+        config: dict = None,
+        device="cpu",
+        objective="classification",
     ):
         if config is not None:
             self._load_config(config)
@@ -39,26 +33,34 @@ class Trainer:
         self.test_loader = test_loader
         self.device = device
 
-        self.criterion = F.cross_entropy
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.AdamW(self.model.parameters(), lr=self.learning_rate)
+        self.scheduler = CosineAnnealingLR(self.optimizer, T_max=20)
 
         self.checkpoint_manager = CheckpointManager(self.checkpoint_dir)
 
         self.wandb_logger = WandbLogger(self.wandb_project)
         self.wandb_logger.watch(self.model)
 
+        if objective == "classification":
+            self.metrics = ClassificationMetrics(len(self.train_loader), len(self.test_loader))
+            self.criterion = F.cross_entropy
+        elif objective == "regression":
+            self.metrics = RegressionMetrics(len(self.train_loader), len(self.test_loader))
+            self.criterion = F.mse_loss
+        else:
+            raise ValueError(f"Invalid objective: {objective}")
+
     def _load_config(self, config: dict):
         self.learning_rate = config.get("learning_rate", 5e-3)
         self.num_epochs = config.get("num_epochs", 10)
         self.wandb_project = config.get("wandb_project", "rl-replay-trainer")
         self.checkpoint_dir = config.get("checkpoint_dir", "checkpoints")
+        self.max_grad_norm = config.get("max_grad_norm", 1.0)
 
     def train(self):
+
         for epoch in range(self.num_epochs):
             self.model.train()
-            train_loss = 0.0
-            correct = 0
-            total = 0
 
             # Training loop
             with tqdm(
@@ -72,7 +74,6 @@ class Trainer:
                     obs = input_seq["obs"].to(self.device)
                     target = target.to(self.device).squeeze()
 
-                    
                     self.optimizer.zero_grad()
 
                     # (b, seq_len, num_actions)
@@ -81,54 +82,31 @@ class Trainer:
 
                     loss = self.criterion(outputs, target)
                     loss.backward()
-                    self.optimizer.step()
-                    train_loss += loss.item()
 
-                    _, predicted = torch.max(outputs.data, 1)
-                    total += target.size(0)
-                    correct += (predicted == target).sum().item()
+                    clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                    self.optimizer.step()
+                    self.scheduler.step()
+
+                    self.metrics.update_train(loss.item(), outputs, target)
 
                     pbar.set_postfix(loss=loss.item())
                     pbar.update(1)
 
-            # Average training loss
-            train_loss /= len(self.train_loader)
-
-            # Train accuracy
-            accuracy = 100 * correct / total
-
-            # Validation
-            test_loss, test_accuracy, top_5_accuracy, switch_accuracy = self.evaluate()
-
-            self.wandb_logger.log(
-                {
-                    "Train Loss": train_loss,
-                    "Test Loss": test_loss,
-                    "Train Accuracy": accuracy,
-                    "Test Accuracy": test_accuracy,
-                    "Test Top-5 Accuracy": top_5_accuracy,
-                    "Test Switch Accuracy": switch_accuracy,
-                }
+            # metrics
+            self.evaluate()
+            metrics_dict = self.metrics.to_dict()
+            self.wandb_logger.log(metrics_dict)
+            print(self.metrics)
+            self.checkpoint_manager.save_checkpoint(
+                self.model, epoch, metrics_dict["Test Accuracy"]
             )
-            print(
-                f"Epoch [{epoch + 1}/{self.num_epochs}], Train L: {train_loss:.4f}"
-                + f", Test L: {test_loss:.4f}"
-                + f", Train Acc: {accuracy:.2f}%, Test Acc: {test_accuracy:.2f}%, Top-5 Acc: {top_5_accuracy:.2f}%"
-                + f", Switch Acc: {switch_accuracy:.2f}%"
-            )
-            self.checkpoint_manager.save_checkpoint(self.model, epoch, accuracy)
+            self.metrics.reset()
 
     def evaluate(self):
         self.model.eval()
-        test_loss = 0.0
-        correct_top1 = 0
-        correct_top5 = 0
-        correct_switch = 0
-        total = 0
-        total_switch = 0
 
         with torch.no_grad():
-            for batch in tqdm(self.test_loader):
+            for batch in tqdm(self.test_loader, desc="Evaluating"):
                 input_seq, target = batch
                 actions = input_seq["actions"].to(self.device)
                 obs = input_seq["obs"].to(self.device)
@@ -136,33 +114,7 @@ class Trainer:
 
                 # Forward pass
                 outputs = self.model(actions, obs)
-                # outputs = outputs[:, -1, :]
 
-                # Compute loss
                 loss = self.criterion(outputs, target)
-                test_loss += loss.item()
 
-                # Calculate top-1 accuracy
-                _, predicted_top1 = torch.max(outputs.data, 1)
-                total += target.size(0)
-                correct_top1 += (predicted_top1 == target).sum().item()
-
-                # Calculate top-5 accuracy
-                _, predicted_top5 = torch.topk(outputs.data, 5, dim=1)
-                correct_top5 += (predicted_top5 == target.view(-1, 1)).sum().item()
-
-                # Calculate switch accuracy
-                # accuracy only when last action is different from target
-                _, predicted_switch = torch.max(outputs.data, 1)
-                last_actions = actions[:, -1].squeeze() # (batch_size, )
-                total_switch += (last_actions != target).sum().item()
-                correct_switch += ( (last_actions != target) & (predicted_switch == target) ).sum().item()
-
-
-        # Average test loss and accuracies
-        test_loss /= len(self.test_loader)
-        accuracy_top1 = 100 * correct_top1 / total
-        accuracy_top5 = 100 * correct_top5 / total
-        accuracy_switch = 100 * correct_switch / total_switch
-
-        return test_loss, accuracy_top1, accuracy_top5, accuracy_switch
+                self.metrics.update_test(loss.item(), outputs, target, actions=actions)

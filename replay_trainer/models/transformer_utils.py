@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as init
 import math
 from typing import Optional
 
@@ -46,7 +47,16 @@ class MultiheadSelfAttention(nn.Module):
         self.q_proj = nn.Linear(d_model, d_model, bias=False)
         self.k_proj = nn.Linear(d_model, d_model, bias=False)
         self.v_proj = nn.Linear(d_model, d_model, bias=False)
-        self.output_proj = nn.Linear(d_model, d_model, bias=False)
+        self.output_proj = nn.Linear(d_model, d_model, bias=True)
+
+        self._apply_xavier_initialization()
+
+    def _apply_xavier_initialization(self):
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
 
     def _split_heads(self, x: torch.FloatTensor) -> torch.FloatTensor:
         # x: .., m, d_model
@@ -80,9 +90,8 @@ class MultiheadSelfAttention(nn.Module):
         # attention
         # .., n_heads, m, d_k
         seq_len = Q.shape[-2]
-        mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)
-        mask = None
-        scores = attention(K=K, Q=Q, V=V, mask=mask, pdrop=self.pdrop)
+        # mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool().to(x.device)
+        scores = attention(K=K, Q=Q, V=V, mask=None, pdrop=self.pdrop)
         # .., m, d_model
         scores = self._merge_heads(scores)
 

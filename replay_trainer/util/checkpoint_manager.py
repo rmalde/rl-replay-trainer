@@ -20,7 +20,6 @@ class CheckpointManager:
         checkpoint_path = os.path.join(self.directory, f"epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), checkpoint_path)
         self.checkpoints.append((checkpoint_path, accuracy))
-        print(f"Saved model checkpoint to {checkpoint_path}")
 
         # Maintain only the last 5 checkpoints
         if len(self.checkpoints) > self.max_checkpoints:
@@ -36,4 +35,5 @@ class CheckpointManager:
             self.best_epoch = epoch
             
             best_checkpoint_path = self._best_epoch_path(epoch)
+            print(f"New best test accuracy, saving {best_checkpoint_path}")
             torch.save(model.state_dict(), best_checkpoint_path)
