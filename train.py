@@ -3,10 +3,9 @@ from torch.utils.data import DataLoader
 import os
 from sklearn.model_selection import train_test_split
 
-from replay_trainer.data import ObsActDataset, get_obsact_dataloaders
+from replay_trainer.data import get_obsact_dataloaders
 from replay_trainer.models import FCN, Transformer
 from replay_trainer import Trainer
-
 
 
 def train(dataset_dir):
@@ -14,7 +13,10 @@ def train(dataset_dir):
     print(f"Using device: {device}")
 
     sequence_length = 10
-    train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(dataset_dir, sequence_length)
+    batch_size = 1024
+    train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(
+        dataset_dir, sequence_length, batch_size=batch_size, device=device
+    )
 
     trainer_config = {
         "learning_rate": 5e-4,
