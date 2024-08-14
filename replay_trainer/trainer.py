@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.nn.utils import clip_grad_norm_
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from tqdm.rich import tqdm
 
@@ -51,6 +52,7 @@ class Trainer:
                 len(self.train_loader), len(self.test_loader)
             )
             self.criterion = F.mse_loss
+            # self.criterion = F.binary_cross_entropy
         else:
             raise ValueError(f"Invalid objective: {objective}")
 
@@ -65,6 +67,9 @@ class Trainer:
 
         for epoch in range(self.num_epochs):
             self.model.train()
+
+            all_outputs = []
+            all_targets = []
 
             # Training loop
             with tqdm(
@@ -82,6 +87,7 @@ class Trainer:
 
                     # (b, seq_len, num_actions)
                     outputs = self.model(actions, obs)
+
                     # outputs = outputs[:, -1, :]
 
                     loss = self.criterion(outputs, target)
@@ -96,6 +102,11 @@ class Trainer:
                     pbar.set_postfix(loss=loss.item())
                     pbar.update(1)
 
+                    all_outputs.append(outputs)
+                    all_targets.append(target)
+
+            if self.objective == "regression":
+                self._save_plot(all_outputs, all_targets, "train_plot.png")
             # metrics
             self.evaluate()
             metrics_dict = self.metrics.to_dict()
@@ -104,12 +115,28 @@ class Trainer:
             checkpoint_metric = (
                 metrics_dict["Test Accuracy"]
                 if self.objective == "classification"
-                else metrics_dict["Test Mean Absolute Error"]
+                else 1-metrics_dict["Test Mean Absolute Error"]
             )
             self.checkpoint_manager.save_checkpoint(
                 self.model, epoch, checkpoint_metric
             )
             self.metrics.reset()
+
+    def _save_plot(self, all_outputs, all_targets, filename):
+        all_outputs = torch.cat(all_outputs).detach().cpu().numpy()
+        all_targets = torch.cat(all_targets).detach().cpu().numpy()
+        # save scatterplot to scatterplot.png
+        # Create a scatter plot
+        plt.figure()
+        sns.violinplot(x=all_targets, y=all_outputs)
+        plt.title('Violin Plot')
+        plt.xlabel('Targets')
+        plt.ylabel('Outputs')
+
+        # Save the plot to a PNG file
+        plt.savefig(filename)
+
+        print("Saved scatterplot to " , filename)
 
     def evaluate(self):
         self.model.eval()
@@ -135,20 +162,8 @@ class Trainer:
 
 
             if self.objective == "regression":
-                all_outputs = torch.cat(all_outputs).detach().cpu().numpy()
-                all_targets = torch.cat(all_targets).detach().cpu().numpy()
-                # save scatterplot to scatterplot.png
-                # Create a scatter plot
-                plt.figure()
-                plt.scatter(all_targets, all_outputs, alpha=0.7, edgecolors='w', s=50)
-                plt.title('Scatter Plot')
-                plt.xlabel('Targets')
-                plt.ylabel('Outputs')
-
-                # Save the plot to a PNG file
-                plt.savefig('scatter_plot.png')
-
-                print("Saved scatterplot to scatter_plot.png")
+                self._save_plot(all_outputs, all_targets, "test_plot.png")
+                
 
 
 

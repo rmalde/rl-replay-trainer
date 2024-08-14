@@ -4,7 +4,7 @@ import os
 from sklearn.model_selection import train_test_split
 
 from replay_trainer.data import get_obsact_dataloaders
-from replay_trainer.models import FCN, Transformer
+from replay_trainer.models import FCN, Transformer, PhysicsTransformer
 from replay_trainer import Trainer
 
 
@@ -12,10 +12,10 @@ def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    sequence_length = 10
+    sequence_length = 1
     batch_size = 1024
     train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(
-        dataset_dir, sequence_length, batch_size=batch_size, device=device
+        dataset_dir, sequence_length, batch_size=batch_size
     )
 
     trainer_config = {
@@ -25,12 +25,12 @@ def train(dataset_dir):
         "wandb_project": None,
     }
     model_config = {
-        "d_model": 128,
-        "num_heads": 8,
+        "d_model": 256,
+        "num_heads": 4,
         "d_ff": 512,
         "attn_pdrop": 0.2,
         "residual_pdrop": 0.2,
-        "num_layers": 16,
+        "num_layers": 8,
     }
 
     print("Initializing model...")
@@ -38,10 +38,17 @@ def train(dataset_dir):
     #             action_size=90,
     #             sequence_length=train_dataset.sequence_length,
     #             config=model_config)
-    model = Transformer(
+    # model = Transformer(
+    #     obs_size=obs_size,
+    #     action_size=action_size,
+    #     sequence_length=sequence_length,
+    #     config=model_config,
+    # )
+    model = PhysicsTransformer(
         obs_size=obs_size,
         action_size=action_size,
         sequence_length=sequence_length,
+        objective="classification",
         config=model_config,
     )
 
@@ -52,5 +59,5 @@ def train(dataset_dir):
 
 
 if __name__ == "__main__":
-    dataset_dir = "dataset/ssl-1v1-40-trig-v2"
+    dataset_dir = "dataset/ssl-1v1-40-pyr"
     train(dataset_dir)

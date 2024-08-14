@@ -30,11 +30,11 @@ class ObsActDataset(Dataset):
     def _load_data(self):
         data = []
         for filename in tqdm(self.filenames):
-            actions_path = os.path.join(self.dataset_dir, 'actions', f'{filename}.npy')
-            obs_path = os.path.join(self.dataset_dir, 'obs', f'{filename}.npy')
+            actions_path = os.path.join(self.dataset_dir, 'actions', f'{filename}.npz')
+            obs_path = os.path.join(self.dataset_dir, 'obs', f'{filename}.npz')
 
-            actions = np.load(actions_path)
-            obs = np.load(obs_path)
+            actions = np.load(actions_path)['array']
+            obs = np.load(obs_path)['array']
             num_actions = actions.shape[1]
             num_obs = obs.shape[1]
 

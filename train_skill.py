@@ -4,7 +4,7 @@ import os
 from sklearn.model_selection import train_test_split
 
 from replay_trainer.data import get_skill_dataloaders
-from replay_trainer.models import FCN, Transformer, RegressionTransformer
+from replay_trainer.models import FCN, Transformer, PhysicsTransformer
 from replay_trainer import Trainer
 
 
@@ -12,7 +12,7 @@ def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    sequence_length = 40
+    sequence_length = 1
     batch_size = 1024
     train_loader, test_loader, obs_size, action_size = get_skill_dataloaders(
         dataset_dir, sequence_length, batch_size=batch_size
@@ -21,15 +21,15 @@ def train(dataset_dir):
     trainer_config = {
         "learning_rate": 5e-3,
         "num_epochs": 100_000,
-        "wandb_project": "rl-skill-trainer",
-        # "wandb_project": None,
+        # "wandb_project": "rl-skill-trainer",
+        "wandb_project": None,
     }
     model_config = {
-        "d_model": 128,
+        "d_model": 64,
         "num_heads": 4,
-        "d_ff": 512,
-        "attn_pdrop": 0.2,
-        "residual_pdrop": 0.2,
+        "d_ff": 256,
+        "attn_pdrop": 0.5,
+        "residual_pdrop": 0.5,
         "num_layers": 8,
     }
 
@@ -38,10 +38,11 @@ def train(dataset_dir):
     #             action_size=90,
     #             sequence_length=train_dataset.sequence_length,
     #             config=model_config)
-    model = RegressionTransformer(
+    model = PhysicsTransformer(
         obs_size=obs_size,
         action_size=action_size,
         sequence_length=sequence_length,
+        objective="regression",
         config=model_config,
     )
 
