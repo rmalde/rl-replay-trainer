@@ -3,6 +3,7 @@ dataset/
 replay_trainer/data/convert/utils/collision_meshes/
 checkpoints/
 wandb/
+*.png
 
 
 # Byte-compiled / optimized / DLL files

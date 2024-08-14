@@ -116,5 +116,5 @@ class RegressionTransformer(nn.Module):
         x = self.ln_final(x)
         x = self.attention_pooling(x)
         x = self.lm_head(x)
-        x = F.sigmoid(x)
+        x = F.sigmoid(x).squeeze(-1)
         return x

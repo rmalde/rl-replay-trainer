@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from abc import ABC, abstractmethod
 
 
@@ -111,28 +112,44 @@ class ClassificationMetrics(Metrics):
         return_str += f"Switch Acc: {(100 * self.correct_switch_test / self.total_switch_test):.2f}%"
         return return_str
 
+
 class RegressionMetrics(Metrics):
     def __init__(self, len_train: int, len_test: int):
         super().__init__(len_train, len_test)
 
+    def reset(self):
+        super().reset()
+        self.total_train = 0
+        self.total_test = 0
+        self.mae_train = 0
+        self.mae_test = 0
+
     def update_train(
         self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
     ):
+        self.total_train += target.size(0)
         self.train_loss += loss
+        self.mae_train += torch.abs(target - outputs).sum().item()
 
     def update_test(
         self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
     ):
+        self.total_test += target.size(0)
         self.test_loss += loss
+        self.mae_test += torch.abs(target - outputs).sum().item()
 
     def to_dict(self) -> dict:
         return {
             "Train loss": self.train_loss / self.len_train,
             "Test loss": self.test_loss / self.len_test,
+            "Train Mean Absolute Error" : self.mae_train / self.total_train,
+            "Test Mean Absolute Error" : self.mae_test / self.total_test
         }
 
     def __repr__(self):
         return_str = ""
         return_str += f"Train L: {(self.train_loss / self.len_train):.4f}, "
-        return_str += f"Test L: {(self.test_loss / self.len_test):.4f}"
+        return_str += f"Test L: {(self.test_loss / self.len_test):.4f}, "
+        return_str += f"Train Abs Error: {(self.mae_train / self.total_train):.2f}, "
+        return_str += f"Test Abs Error: {(self.mae_test / self.total_test):.2f}"
         return return_str
