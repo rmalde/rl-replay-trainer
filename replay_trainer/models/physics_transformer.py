@@ -75,9 +75,12 @@ class PhysicsTransformer(nn.Module):
         self.objective = objective
         self._load_config(config)
 
-        self.action_embedding = nn.Embedding(action_size, self.d_model)
+        seq_len = self.physics_proj.seq_len
+        if self.use_actions:
+            self.action_embedding = nn.Embedding(action_size, self.d_model)
+            seq_len += 1
         self.physics_proj = PhysicsProjection(self.d_model)
-        self.position_embeddings = nn.Embedding(self.physics_proj.seq_len + 1, self.d_model)
+        self.position_embeddings = nn.Embedding(seq_len, self.d_model)
 
         self.layers = nn.ModuleList(
             [
@@ -103,6 +106,7 @@ class PhysicsTransformer(nn.Module):
         self.attn_pdrop = config.get("attn_pdrop", 0.1)
         self.residual_pdrop = config.get("residual_pdrop", 0.1)
         self.num_layers = config.get("num_layers", 8)
+        self.use_actions = config.get("use_actions", False)
 
     def forward(self, actions: torch.LongTensor, obs: torch.FloatTensor) -> torch.FloatTensor:
         # actions: (n, sequence_length, 1)
@@ -116,7 +120,8 @@ class PhysicsTransformer(nn.Module):
         # (n, 22, d_model)
         x = self.physics_proj(obs)
         # (n, 23, d_model)
-        x = torch.cat([self.action_embedding(actions.squeeze(-1)), x], dim=1)
+        if self.use_actions:
+            x = torch.cat([self.action_embedding(actions.squeeze(-1)), x], dim=1)
         x = x + self.position_embeddings(torch.arange(x.shape[1], device=x.device))
         for layer in self.layers:
             x = layer(x)
