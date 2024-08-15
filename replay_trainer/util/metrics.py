@@ -150,6 +150,6 @@ class RegressionMetrics(Metrics):
         return_str = ""
         return_str += f"Train L: {(self.train_loss / self.len_train):.4f}, "
         return_str += f"Test L: {(self.test_loss / self.len_test):.4f}, "
-        return_str += f"Train Abs Error: {(self.mae_train / self.total_train):.2f}, "
-        return_str += f"Test Abs Error: {(self.mae_test / self.total_test):.2f}"
+        return_str += f"Train Abs Error: {(self.mae_train / self.total_train):.4f}, "
+        return_str += f"Test Abs Error: {(self.mae_test / self.total_test):.4f}"
         return return_str

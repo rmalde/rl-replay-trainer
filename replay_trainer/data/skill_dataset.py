@@ -11,16 +11,25 @@ warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 rank_to_skill = {
     "bronze-1": 0.0,
     "silver-1": 0.1,
-    "gold-1": 0.2,
-    "platinum-1": 0.3,
-    "diamond-1": 0.4,
-    "champion-1": 0.5,
-    "grand-champion-1": 0.6,
-    "grand-champion-2": 0.7,
-    "grand-champion-3": 0.8,
-    "supersonic-legend": 0.9,
+    "gold-1": 0.15,
+    "platinum-1": 0.20,
+    "diamond-1": 0.25,
+    "champion-1": 0.3,
+    "grand-champion-1": 0.4,
+    "grand-champion-2": 0.5,
+    "grand-champion-3": 0.6,
+    "supersonic-legend": 0.7,
     "pro": 1.0
 }
+# rank_to_skill = {
+#     "diamond-1": 0.0,
+#     "champion-1": 0.167,
+#     "grand-champion-1": 0.333,
+#     "grand-champion-2": 0.5,
+#     "grand-champion-3": 0.677,
+#     "supersonic-legend": 0.833,
+#     "pro": 1.0
+# }
 
 class SkillDataset(Dataset):
     def __init__(self, dataset_dir, filenames, filename_to_rank, sequence_length=30):
@@ -45,7 +54,11 @@ class SkillDataset(Dataset):
 
     def _load_data(self):
         data = []
+        skipped_ranks = set()
         for filename in tqdm(self.filenames):
+            if self.filename_to_rank[filename] not in rank_to_skill:
+                skipped_ranks.add(self.filename_to_rank[filename])
+                continue
             actions_path = os.path.join(self.dataset_dir, 'actions', f'{filename}.npz')
             obs_path = os.path.join(self.dataset_dir, 'obs', f'{filename}.npz')
 
@@ -72,6 +85,7 @@ class SkillDataset(Dataset):
                 }
                 target = skill
                 data.append((input_seq, target))
+        print(f"Skipped ranks: {list(skipped_ranks)}")
         return data
 
     def __len__(self):

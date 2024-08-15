@@ -75,8 +75,9 @@ class PhysicsTransformer(nn.Module):
         self.objective = objective
         self._load_config(config)
 
+        self.action_embedding = nn.Embedding(action_size, self.d_model)
         self.physics_proj = PhysicsProjection(self.d_model)
-        self.position_embeddings = nn.Embedding(self.physics_proj.seq_len, self.d_model)
+        self.position_embeddings = nn.Embedding(self.physics_proj.seq_len + 1, self.d_model)
 
         self.layers = nn.ModuleList(
             [
@@ -108,11 +109,14 @@ class PhysicsTransformer(nn.Module):
         # obs: (n, sequence_length, obs_size)
 
         # assert that sequence length is 1
-        assert obs.shape[1] == 1
-        obs = obs.squeeze(1)
+        if len(obs.shape) == 3:
+            assert obs.shape[1] == 1
+            obs = obs.squeeze(1)
 
         # (n, 22, d_model)
         x = self.physics_proj(obs)
+        # (n, 23, d_model)
+        x = torch.cat([self.action_embedding(actions.squeeze(-1)), x], dim=1)
         x = x + self.position_embeddings(torch.arange(x.shape[1], device=x.device))
         for layer in self.layers:
             x = layer(x)

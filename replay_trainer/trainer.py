@@ -36,7 +36,7 @@ class Trainer:
         self.device = device
 
         self.optimizer = optim.AdamW(self.model.parameters(), lr=self.learning_rate)
-        self.scheduler = CosineAnnealingLR(self.optimizer, T_max=20)
+        self.scheduler = CosineAnnealingLR(self.optimizer, T_max=self.scheduler_max_t)
 
         self.checkpoint_manager = CheckpointManager(self.checkpoint_dir)
         self.wandb_logger = WandbLogger(self.wandb_project)
@@ -62,6 +62,7 @@ class Trainer:
         self.wandb_project = config.get("wandb_project", "rl-replay-trainer")
         self.checkpoint_dir = config.get("checkpoint_dir", "checkpoints")
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
+        self.scheduler_max_t = config.get("scheduler_max_t", 20)
 
     def train(self):
 
