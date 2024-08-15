@@ -10,15 +10,16 @@ warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 rank_to_skill = {
     "bronze-1": 0.0,
-    "silver-1": 0.111,
-    "gold-1": 0.222,
-    "platinum-1": 0.333,
-    "diamond-1": 0.444,
-    "champion-1": 0.555,
-    "grand-champion-1": 0.666,
-    "grand-champion-2": 0.777,
-    "grand-champion-3": 0.888,
-    "supersonic-legend": 1.0
+    "silver-1": 0.1,
+    "gold-1": 0.2,
+    "platinum-1": 0.3,
+    "diamond-1": 0.4,
+    "champion-1": 0.5,
+    "grand-champion-1": 0.6,
+    "grand-champion-2": 0.7,
+    "grand-champion-3": 0.8,
+    "supersonic-legend": 0.9,
+    "pro": 1.0
 }
 
 class SkillDataset(Dataset):
