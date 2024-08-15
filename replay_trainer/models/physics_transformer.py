@@ -75,11 +75,13 @@ class PhysicsTransformer(nn.Module):
         self.objective = objective
         self._load_config(config)
 
+        self.physics_proj = PhysicsProjection(self.d_model)
         seq_len = self.physics_proj.seq_len
+
         if self.use_actions:
             self.action_embedding = nn.Embedding(action_size, self.d_model)
             seq_len += 1
-        self.physics_proj = PhysicsProjection(self.d_model)
+            
         self.position_embeddings = nn.Embedding(seq_len, self.d_model)
 
         self.layers = nn.ModuleList(
