@@ -86,8 +86,8 @@ class ClassificationMetrics(Metrics):
 
     def to_dict(self) -> dict:
         return {
-            "Train loss": self.train_loss / self.len_train,
-            "Test loss": self.test_loss / self.len_test,
+            "Train Loss": self.train_loss / self.len_train,
+            "Test Loss": self.test_loss / self.len_test,
             "Train Accuracy": 100 * self.correct_top1_train / self.total_train,
             "Test Accuracy": 100 * self.correct_top1_test / self.total_test,
             "Test Top-5 Accuracy": 100 * self.correct_top5_test / self.total_test,

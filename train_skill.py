@@ -24,27 +24,32 @@ def train(dataset_dir):
         # "wandb_project": "rl-skill-trainer",
         "wandb_project": None,
     }
+    # model_config = {
+    #     "d_model": 64,
+    #     "num_heads": 4,
+    #     "d_ff": 256,
+    #     "attn_pdrop": 0.5,
+    #     "residual_pdrop": 0.5,
+    #     "num_layers": 8,
+    # }
     model_config = {
-        "d_model": 64,
-        "num_heads": 4,
-        "d_ff": 256,
-        "attn_pdrop": 0.5,
-        "residual_pdrop": 0.5,
-        "num_layers": 8,
+        "dropout": 0.5,
+        "use_batch_norm": True
     }
 
     print("Initializing model...")
-    # model = FCN(obs_size=train_dataset[0][0]['obs'].shape[1],
-    #             action_size=90,
-    #             sequence_length=train_dataset.sequence_length,
-    #             config=model_config)
-    model = PhysicsTransformer(
-        obs_size=obs_size,
-        action_size=action_size,
-        sequence_length=sequence_length,
-        objective="regression",
-        config=model_config,
-    )
+    model = FCN(obs_size=obs_size,
+                action_size=action_size,
+                layer_sizes=[2048, 2048, 2048, 1024, 1024],
+                objective="regression",
+                config=model_config)
+    # model = PhysicsTransformer(
+    #     obs_size=obs_size,
+    #     action_size=action_size,
+    #     sequence_length=sequence_length,
+    #     objective="regression",
+    #     config=model_config,
+    # )
 
     trainer = Trainer(model, train_loader, test_loader, trainer_config, device=device, objective="regression")
 
