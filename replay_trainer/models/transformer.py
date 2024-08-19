@@ -19,8 +19,6 @@ class Transformer(nn.Module):
         super().__init__()
         self.objective = objective
         self._load_config(config)
-        if self.use_actions:
-            self.action_embedding = nn.Embedding(action_size, self.d_model)
         self.obs_proj = nn.Linear(obs_size, self.d_model)
         self.position_embeddings = nn.Embedding(sequence_length, self.d_model)
 
@@ -48,15 +46,11 @@ class Transformer(nn.Module):
         self.attn_pdrop = config.get("attn_pdrop", 0.1)
         self.residual_pdrop = config.get("residual_pdrop", 0.1)
         self.num_layers = config.get("num_layers", 8)
-        self.use_actions = config.get("use_actions", False)
 
-    def forward(self, actions: torch.LongTensor, obs: torch.FloatTensor) -> torch.FloatTensor:
-        # actions: (n, sequence_length, 1)
+    def forward(self, obs: torch.FloatTensor) -> torch.FloatTensor:
         # obs: (n, sequence_length, obs_size)
 
         x = self.obs_proj(obs)
-        if self.use_actions:
-            x = x + self.action_embedding(actions.squeeze(-1))
         # x: (n, sequence_length, d_model)
         x = x + self.position_embeddings(torch.arange(x.shape[1], device=x.device))
         for layer in self.layers:

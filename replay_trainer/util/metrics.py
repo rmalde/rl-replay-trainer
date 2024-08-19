@@ -16,7 +16,7 @@ class Metrics(ABC):
 
     @abstractmethod
     def update_train(
-        self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
+        self, loss: float, outputs: torch.Tensor, target: torch.Tensor
     ):
         """Update metrics based on the current batch."""
         pass
@@ -56,7 +56,7 @@ class ClassificationMetrics(Metrics):
         self.total_switch_test = 0
 
     def update_train(
-        self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
+        self, loss: float, outputs: torch.Tensor, target: torch.Tensor
     ):
         self.total_train += target.size(0)
         self.train_loss += loss
@@ -65,9 +65,8 @@ class ClassificationMetrics(Metrics):
         self.correct_top1_train += (predicted_top1 == target).sum().item()
 
     def update_test(
-        self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
+        self, loss: float, outputs: torch.Tensor, target: torch.Tensor
     ):
-        actions = kwargs["actions"]
 
         self.total_test += target.size(0)
         self.test_loss += loss
@@ -125,14 +124,14 @@ class RegressionMetrics(Metrics):
         self.mae_test = 0
 
     def update_train(
-        self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
+        self, loss: float, outputs: torch.Tensor, target: torch.Tensor
     ):
         self.total_train += target.size(0)
         self.train_loss += loss
         self.mae_train += torch.abs(target - outputs).sum().item()
 
     def update_test(
-        self, loss: float, outputs: torch.Tensor, target: torch.Tensor, **kwargs
+        self, loss: float, outputs: torch.Tensor, target: torch.Tensor
     ):
         self.total_test += target.size(0)
         self.test_loss += loss

@@ -1,10 +1,11 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import os
 from sklearn.model_selection import train_test_split
 
 from replay_trainer.data import get_skill_dataloaders
-from replay_trainer.models import FCN, Transformer, PhysicsTransformer
+from replay_trainer.models import FCN, Transformer, PhysicsTransformer, SkillMask
 from replay_trainer import Trainer
 
 
@@ -12,10 +13,9 @@ def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    sequence_length = 1
     batch_size = 1024
     train_loader, test_loader, obs_size, action_size = get_skill_dataloaders(
-        dataset_dir, sequence_length, batch_size=batch_size
+        dataset_dir, batch_size=batch_size
     )
 
     trainer_config = {
@@ -38,15 +38,18 @@ def train(dataset_dir):
     }
 
     print("Initializing model...")
-    model = FCN(obs_size=obs_size,
+    skill_mask = SkillMask()
+    model = nn.Sequential(
+        skill_mask,
+        FCN(obs_size=skill_mask.out_dim,
                 action_size=action_size,
-                layer_sizes=[2048, 2048, 2048, 1024, 1024],
+                layer_sizes=[1024, 1024, 1024, 1024],
                 objective="regression",
-                config=model_config)
+                config=model_config),
+    )
     # model = PhysicsTransformer(
     #     obs_size=obs_size,
     #     action_size=action_size,
-    #     sequence_length=sequence_length,
     #     objective="regression",
     #     config=model_config,
     # )

@@ -79,17 +79,16 @@ class Trainer:
                 unit="batch",
             ) as pbar:
                 for batch in self.train_loader:
-                    input_seq, target = batch
-                    actions = input_seq["actions"].to(self.device)
-                    obs = input_seq["obs"].to(self.device)
+                    obs, target = batch
+                    obs = obs.to(self.device)
                     target = target.to(self.device).squeeze()
 
                     self.optimizer.zero_grad()
-
-                    # (b, seq_len, num_actions)
-                    outputs = self.model(actions, obs)
-
-                    # outputs = outputs[:, -1, :]
+                    # classification
+                    # (b, obs_size) -> (b, action_size)
+                    # regression
+                    # (b, obs_size) -> (b, 1)
+                    outputs = self.model(obs)
 
                     loss = self.criterion(outputs, target)
                     loss.backward()
@@ -146,17 +145,16 @@ class Trainer:
             all_outputs = []
             all_targets = []
             for batch in tqdm(self.test_loader, desc="Evaluating"):
-                input_seq, target = batch
-                actions = input_seq["actions"].to(self.device)
-                obs = input_seq["obs"].to(self.device)
+                obs, target = batch
+                obs = obs.to(self.device)
                 target = target.to(self.device).squeeze()
 
                 # Forward pass
-                outputs = self.model(actions, obs)
+                outputs = self.model(obs)
 
                 loss = self.criterion(outputs, target)
 
-                self.metrics.update_test(loss.item(), outputs, target, actions=actions)
+                self.metrics.update_test(loss.item(), outputs, target)
 
                 all_outputs.append(outputs)
                 all_targets.append(target)
@@ -164,8 +162,3 @@ class Trainer:
 
             if self.objective == "regression":
                 self._save_plot(all_outputs, all_targets, "test_plot.png")
-                
-
-
-
-

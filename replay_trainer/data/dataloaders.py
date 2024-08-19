@@ -9,7 +9,7 @@ from collections import defaultdict
 from replay_trainer.data import ObsActDataset, SkillDataset
 
 
-def get_obsact_dataloaders(dataset_dir, sequence_length, batch_size=1024):
+def get_obsact_dataloaders(dataset_dir, batch_size=1024):
     print("Loading train and test datasets...")
     # initialize data
     filenames = []
@@ -20,8 +20,8 @@ def get_obsact_dataloaders(dataset_dir, sequence_length, batch_size=1024):
     # filenames = filenames[:80]
     train_filenames, test_filenames = train_test_split(filenames, test_size=0.2)
 
-    train_dataset = ObsActDataset(dataset_dir, train_filenames, sequence_length)
-    test_dataset = ObsActDataset(dataset_dir, test_filenames, sequence_length)
+    train_dataset = ObsActDataset(dataset_dir, train_filenames)
+    test_dataset = ObsActDataset(dataset_dir, test_filenames)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -31,12 +31,11 @@ def get_obsact_dataloaders(dataset_dir, sequence_length, batch_size=1024):
     print(f"Test dataset size: {len(test_dataset)}")
     print(f"Action size: {train_dataset.action_size}")
     print(f"Obs size: {train_dataset.obs_size}")
-    print(f"Sequence length: {train_dataset.sequence_length}")
 
     return train_loader, test_loader, train_dataset.obs_size, train_dataset.action_size
 
 
-def get_skill_dataloaders(dataset_dir, sequence_length, batch_size=1024):
+def get_skill_dataloaders(dataset_dir, batch_size=1024):
     print("Loading train and test datasets...")
     # initialize data
     filename_to_rank = {}
@@ -53,16 +52,16 @@ def get_skill_dataloaders(dataset_dir, sequence_length, batch_size=1024):
 
     for rank, filenames in rank_to_filenames.items():
         # TEMP
-        filenames = filenames[:10]
+        # filenames = filenames[:10]
         train, test = train_test_split(filenames, test_size=0.2)
         train_filenames.extend(train)
         test_filenames.extend(test)
 
     train_dataset = SkillDataset(
-        dataset_dir, train_filenames, filename_to_rank, sequence_length
+        dataset_dir, train_filenames, filename_to_rank
     )
     test_dataset = SkillDataset(
-        dataset_dir, test_filenames, filename_to_rank, sequence_length
+        dataset_dir, test_filenames, filename_to_rank
     )
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -73,6 +72,5 @@ def get_skill_dataloaders(dataset_dir, sequence_length, batch_size=1024):
     print(f"Test dataset size: {len(test_dataset)}")
     print(f"Action size: {train_dataset.action_size}")
     print(f"Obs size: {train_dataset.obs_size}")
-    print(f"Sequence length: {train_dataset.sequence_length}")
 
     return train_loader, test_loader, train_dataset.obs_size, train_dataset.action_size

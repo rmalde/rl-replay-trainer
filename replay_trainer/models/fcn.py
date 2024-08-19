@@ -35,12 +35,10 @@ class FCN(nn.Module):
         self.dropout = config.get("dropout", 0.2)
         self.use_batch_norm = config.get("use_batch_norm", False)
 
-    def forward(self, act, obs):
+    def forward(self, obs):
         """
         obs: (n, obs_size)
         """
-        if len(obs.shape) == 3:
-            obs = obs.squeeze(1)
         x = self.layers(obs)
         if self.objective == "regression":
             x = F.sigmoid(x).squeeze(-1)
