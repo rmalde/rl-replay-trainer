@@ -52,8 +52,8 @@ class ClassificationMetrics(Metrics):
         self.total_test = 0
         self.correct_top1_test = 0
         self.correct_top5_test = 0
-        self.correct_switch_test = 0
-        self.total_switch_test = 0
+        # self.correct_switch_test = 0
+        # self.total_switch_test = 0
 
     def update_train(
         self, loss: float, outputs: torch.Tensor, target: torch.Tensor
@@ -77,11 +77,11 @@ class ClassificationMetrics(Metrics):
         _, predicted_top5 = torch.topk(outputs.data, 5, dim=1)
         self.correct_top5_test += (predicted_top5 == target.unsqueeze(1)).sum().item()
         # switch
-        last_actions = actions[:, -1].squeeze()  # (batch_size, )
-        self.total_switch_test += (last_actions != target).sum().item()
-        self.correct_switch_test += (
-            ((last_actions != target) & (predicted_top1 == target)).sum().item()
-        )
+        # last_actions = actions[:, -1].squeeze()  # (batch_size, )
+        # self.total_switch_test += (last_actions != target).sum().item()
+        # self.correct_switch_test += (
+        #     ((last_actions != target) & (predicted_top1 == target)).sum().item()
+        # )
 
     def to_dict(self) -> dict:
         return {
@@ -90,9 +90,9 @@ class ClassificationMetrics(Metrics):
             "Train Accuracy": 100 * self.correct_top1_train / self.total_train,
             "Test Accuracy": 100 * self.correct_top1_test / self.total_test,
             "Test Top-5 Accuracy": 100 * self.correct_top5_test / self.total_test,
-            "Test Switch Accuracy": 100
-            * self.correct_switch_test
-            / self.total_switch_test,
+            # "Test Switch Accuracy": 100
+            # * self.correct_switch_test
+            # / self.total_switch_test,
         }
 
     def __repr__(self):
@@ -108,7 +108,7 @@ class ClassificationMetrics(Metrics):
         return_str += (
             f"Top-5 Acc: {(100 * self.correct_top5_test / self.total_test):.2f}%, "
         )
-        return_str += f"Switch Acc: {(100 * self.correct_switch_test / self.total_switch_test):.2f}%"
+        # return_str += f"Switch Acc: {(100 * self.correct_switch_test / self.total_switch_test):.2f}%"
         return return_str
 
 
