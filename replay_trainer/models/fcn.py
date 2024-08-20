@@ -26,7 +26,8 @@ class FCN(nn.Module):
             layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
             if i < len(layer_sizes) - 2:
                 if self.use_batch_norm:
-                    layers.append(nn.BatchNorm1d(layer_sizes[i + 1]))
+                    # layers.append(nn.BatchNorm1d(layer_sizes[i + 1]))
+                    layers.append(nn.LayerNorm(layer_sizes[i + 1]))
                 layers.append(nn.ReLU())
                 layers.append(nn.Dropout(self.dropout))
         self.layers = nn.Sequential(*layers)

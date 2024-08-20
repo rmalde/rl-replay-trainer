@@ -13,7 +13,7 @@ def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    batch_size = 4096
+    batch_size = 16384
     train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(
         dataset_dir, batch_size=batch_size
     )
@@ -25,8 +25,8 @@ def train(dataset_dir):
         # "wandb_project": None,
     }
     model_config = {
-        "dropout": 0.2,
-        "use_batch_norm": False
+        "dropout": 0.3,
+        "use_batch_norm": True
     }
 
     print("Initializing model...")

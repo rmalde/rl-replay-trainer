@@ -9,7 +9,7 @@ from collections import defaultdict
 from replay_trainer.data import ObsActDataset, SkillDataset
 
 
-def get_obsact_dataloaders(dataset_dir, batch_size=1024):
+def get_obsact_dataloaders(dataset_dir, batch_size=1024, num_workers=24):
     print("Loading train and test datasets...")
     # initialize data
     filenames = []
@@ -17,14 +17,26 @@ def get_obsact_dataloaders(dataset_dir, batch_size=1024):
         filenames.append(filename.split(".")[0])
 
     # TEMP
-    # filenames = filenames[:80]
+    # filenames = filenames[:1000]
     train_filenames, test_filenames = train_test_split(filenames, test_size=0.2)
 
     train_dataset = ObsActDataset(dataset_dir, train_filenames)
     test_dataset = ObsActDataset(dataset_dir, test_filenames)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
 
     print("Train and test datasets loaded.")
     print(f"Train dataset size: {len(train_dataset)}")
@@ -57,12 +69,8 @@ def get_skill_dataloaders(dataset_dir, batch_size=1024):
         train_filenames.extend(train)
         test_filenames.extend(test)
 
-    train_dataset = SkillDataset(
-        dataset_dir, train_filenames, filename_to_rank
-    )
-    test_dataset = SkillDataset(
-        dataset_dir, test_filenames, filename_to_rank
-    )
+    train_dataset = SkillDataset(dataset_dir, train_filenames, filename_to_rank)
+    test_dataset = SkillDataset(dataset_dir, test_filenames, filename_to_rank)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
