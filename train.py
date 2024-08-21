@@ -7,22 +7,31 @@ from sklearn.model_selection import train_test_split
 from replay_trainer.data import get_obsact_dataloaders
 from replay_trainer.models import FCN, Transformer, PhysicsTransformer
 from replay_trainer import Trainer
+from replay_trainer.util import count_parameters
 
+class PolicyWrapper(nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, x):
+        return self.model(x)
 
 def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    batch_size = 16384
+    batch_size = 4096
     train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(
         dataset_dir, batch_size=batch_size
     )
 
     trainer_config = {
-        "learning_rate": 5e-4,
+        # "learning_rate": 5e-4,
+        "learning_rate": 8e-4,
         "num_epochs": 100_000,
-        "wandb_project": "rl-replay-trainer",
-        # "wandb_project": None,
+        # "wandb_project": "rl-replay-trainer",
+        "wandb_project": None,
     }
     model_config = {
         "dropout": 0.3,
@@ -30,11 +39,15 @@ def train(dataset_dir):
     }
 
     print("Initializing model...")
-    model = FCN(obs_size=obs_size,
+    model = PolicyWrapper(FCN(obs_size=obs_size,
                 action_size=action_size,
-                layer_sizes=[2048, 2048, 2048, 1024, 1024],
+                # layer_sizes=[2048, 2048, 2048, 1024, 1024],
+                layer_sizes=[2048, 2048],
+                # layer_sizes=[2048, 2048, 1024],
                 objective="classification",
-                config=model_config)
+                config=model_config))
+    
+    print(f"Initialized model: {count_parameters(model)}")
     # model = Transformer(
     #     obs_size=obs_size,
     #     action_size=action_size,

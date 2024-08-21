@@ -17,7 +17,7 @@ def get_obsact_dataloaders(dataset_dir, batch_size=1024, num_workers=24):
         filenames.append(filename.split(".")[0])
 
     # TEMP
-    # filenames = filenames[:1000]
+    filenames = filenames[:1000]
     train_filenames, test_filenames = train_test_split(filenames, test_size=0.2)
 
     train_dataset = ObsActDataset(dataset_dir, train_filenames)

@@ -62,7 +62,7 @@ class Trainer:
         self.wandb_project = config.get("wandb_project", "rl-replay-trainer")
         self.checkpoint_dir = config.get("checkpoint_dir", "checkpoints")
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
-        self.scheduler_max_t = config.get("scheduler_max_t", 20)
+        self.scheduler_max_t = config.get("scheduler_max_t", 100000)
 
     def train(self):
 
@@ -101,9 +101,9 @@ class Trainer:
 
                     pbar.set_postfix(loss=loss.item())
                     pbar.update(1)
-
-                    all_outputs.append(outputs)
-                    all_targets.append(target)
+                    if self.objective == "regression":
+                        all_outputs.append(outputs)
+                        all_targets.append(target)
 
             if self.objective == "regression":
                 self._save_plot(all_outputs, all_targets, "train_plot.png")
@@ -156,8 +156,9 @@ class Trainer:
 
                 self.metrics.update_test(loss.item(), outputs, target)
 
-                all_outputs.append(outputs)
-                all_targets.append(target)
+                if self.objective == "regression":
+                    all_outputs.append(outputs)
+                    all_targets.append(target)
 
 
             if self.objective == "regression":

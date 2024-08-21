@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.cuda.amp import autocast
 import math
 from typing import Optional, Literal
 
@@ -10,53 +11,59 @@ class PhysicsProjection(nn.Module):
     def __init__(self, d_model: int):
         super().__init__()
         self.d_model = d_model
-        self.seq_len = 22
+        self.proj_out = 22 * d_model + 111
 
-        self.pos_proj = self._make_proj(3)
-        self.vel_proj = self._make_proj(3)
-        self.ang_vel_proj = self._make_proj(3)
-        self.pad_proj = self._make_proj(34)
-        self.rel_pos_proj = self._make_proj(3)
-        self.rel_vel_proj = self._make_proj(3)
-        self.rotmat_proj = self._make_proj(9)
-        self.pyr_proj = self._make_proj(3)
+        # Shared layers for similar projections
+        self.shared_pos_vel_proj = self._make_shared_proj(3)
+        self.shared_rot_proj = self._make_shared_proj(9)
+        self.pad_proj = self._make_proj(34)  
         self.stats_proj = self._make_proj(4)
-    
+
     def _make_proj(self, d_in: int) -> nn.Module:
         return nn.Sequential(
-            nn.Linear(d_in, self.d_model, bias=False),
+            nn.Linear(d_in, self.d_model, bias=True),
+            nn.LayerNorm(self.d_model),
             nn.GELU(),
-            nn.Linear(self.d_model, self.d_model, bias=False),
+            nn.Linear(self.d_model, self.d_model, bias=True),
+            nn.LayerNorm(self.d_model),
         )
 
+    def _make_shared_proj(self, d_in: int) -> nn.Module:
+        return nn.Sequential(
+            nn.Linear(d_in, self.d_model, bias=True),
+            nn.LayerNorm(self.d_model),
+            nn.GELU(),
+            nn.Linear(self.d_model, self.d_model, bias=True),
+        )
 
     def forward(self, x: torch.FloatTensor):
-        # x: (n, 113)
+        pos = self.shared_pos_vel_proj(x[:, :3])                   
+        vel = self.shared_pos_vel_proj(x[:, 3:6])                  
+        ang_vel = self.shared_pos_vel_proj(x[:, 6:9])              
+        pad = self.pad_proj(x[:, 9:43])                            
+        rel_pos = self.shared_pos_vel_proj(x[:, 43:46])            
+        rel_vel = self.shared_pos_vel_proj(x[:, 46:49])            
+        player_pos = self.shared_pos_vel_proj(x[:, 49:52])         
+        rotmat = self.shared_rot_proj(x[:, 52:61])                 
+        player_vel = self.shared_pos_vel_proj(x[:, 61:64])         
+        player_ang_vel = self.shared_pos_vel_proj(x[:, 64:67])     
+        pyr = self.shared_pos_vel_proj(x[:, 67:70])                
+        stats = self.stats_proj(x[:, 70:74])                       
+        opp_rel_pos = self.shared_pos_vel_proj(x[:, 74:77])        
+        opp_rel_vel = self.shared_pos_vel_proj(x[:, 77:80])        
+        opp_pos = self.shared_pos_vel_proj(x[:, 80:83])            
+        opp_rotmat = self.shared_rot_proj(x[:, 83:92])             
+        opp_vel = self.shared_pos_vel_proj(x[:, 92:95])            
+        opp_ang_vel = self.shared_pos_vel_proj(x[:, 95:98])        
+        opp_pyr = self.shared_pos_vel_proj(x[:, 98:101])           
+        opp_stats = self.stats_proj(x[:, 101:105])                 
+        player_opp_rel_pos = self.shared_pos_vel_proj(x[:, 105:108])
+        player_opp_rel_vel = self.shared_pos_vel_proj(x[:, 108:111])
 
-        # x: (n, 22, d_model)
-        return torch.stack([
-            self.pos_proj(x[:, :3]), # ball pos
-            self.vel_proj(x[:, 3:6]), # ball vel
-            self.ang_vel_proj(x[:, 6:9]), # ball ang vel
-            self.pad_proj(x[:, 9:43]), # pad pos
-            self.rel_pos_proj(x[:, 43:46]), # player rel pos
-            self.rel_vel_proj(x[:, 46:49]), # player rel vel
-            self.pos_proj(x[:, 49:52]), # player pos
-            self.rotmat_proj(x[:, 52:61]), # player rotmat
-            self.vel_proj(x[:, 61:64]), # player vel
-            self.ang_vel_proj(x[:, 64:67]), # player ang vel
-            self.pyr_proj(x[:, 67:70]), # player pyr
-            self.stats_proj(x[:, 70:74]), # player stats
-            self.rel_pos_proj(x[:, 74:77]), # opp rel pos
-            self.rel_vel_proj(x[:, 77:80]), # opp rel vel
-            self.pos_proj(x[:, 80:83]), # opp pos
-            self.rotmat_proj(x[:, 83:92]), # opp rotmat
-            self.vel_proj(x[:, 92:95]), # opp vel
-            self.ang_vel_proj(x[:, 95:98]), # opp ang vel
-            self.pyr_proj(x[:, 98:101]), # opp pyr
-            self.stats_proj(x[:, 101:105]), # opp stats
-            self.rel_pos_proj(x[:, 105:108]), # player_opp rel pos
-            self.rel_vel_proj(x[:, 108:111]), # player_opp rel vel
+        return torch.cat([
+            pos, vel, ang_vel, pad, rel_pos, rel_vel, player_pos, rotmat, player_vel,
+            player_ang_vel, pyr, stats, opp_rel_pos, opp_rel_vel, opp_pos, opp_rotmat,
+            opp_vel, opp_ang_vel, opp_pyr, opp_stats, player_opp_rel_pos, player_opp_rel_vel, x
         ], dim=1)
 
 

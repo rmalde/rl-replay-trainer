@@ -4,6 +4,8 @@ import torch.nn.functional as F
 
 from typing import Literal
 
+from replay_trainer.models.physics_transformer import PhysicsProjection
+
 
 class FCN(nn.Module):
     def __init__(
@@ -18,8 +20,10 @@ class FCN(nn.Module):
         self.objective = objective
         self._load_config(config)
 
+        self.physics_proj = PhysicsProjection(32)
+
         output_size = action_size if objective == "classification" else 1
-        layer_sizes = [obs_size] + layer_sizes + [output_size]
+        layer_sizes = [self.physics_proj.proj_out] + layer_sizes + [output_size]
         # [X, 2048, 2048, 2048, 2048, Y]
         layers = []
         for i in range(len(layer_sizes) - 1):
@@ -28,7 +32,7 @@ class FCN(nn.Module):
                 if self.use_batch_norm:
                     # layers.append(nn.BatchNorm1d(layer_sizes[i + 1]))
                     layers.append(nn.LayerNorm(layer_sizes[i + 1]))
-                layers.append(nn.ReLU())
+                layers.append(nn.GELU())
                 layers.append(nn.Dropout(self.dropout))
         self.layers = nn.Sequential(*layers)
 
@@ -40,7 +44,8 @@ class FCN(nn.Module):
         """
         obs: (n, obs_size)
         """
-        x = self.layers(obs)
+        x = self.physics_proj(obs)
+        x = self.layers(x)
         if self.objective == "regression":
             x = F.sigmoid(x).squeeze(-1)
         return x

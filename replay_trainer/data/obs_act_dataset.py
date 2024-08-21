@@ -11,7 +11,7 @@ from collections import deque
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
 class ObsActDataset(Dataset):
-    def __init__(self, dataset_dir, filenames, max_cache_size=1024):
+    def __init__(self, dataset_dir, filenames, max_cache_size=512):
         """
         Args:
             dataset_dir (str): Path to the dataset, ie 'dataset/ssl-1v1-100'
