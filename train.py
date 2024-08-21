@@ -20,18 +20,20 @@ class PolicyWrapper(nn.Module):
 def train(dataset_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    cut_filecount_to = None
 
     batch_size = 4096
+    # cut_filecount_to = 1000
     train_loader, test_loader, obs_size, action_size = get_obsact_dataloaders(
-        dataset_dir, batch_size=batch_size
+        dataset_dir, batch_size=batch_size, cut_filecount_to=cut_filecount_to
     )
 
     trainer_config = {
         # "learning_rate": 5e-4,
         "learning_rate": 8e-4,
         "num_epochs": 100_000,
-        # "wandb_project": "rl-replay-trainer",
-        "wandb_project": None,
+        "wandb_project": "rl-replay-trainer",
+        # "wandb_project": None,
     }
     model_config = {
         "dropout": 0.3,

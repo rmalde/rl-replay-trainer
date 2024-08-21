@@ -9,7 +9,7 @@ from collections import defaultdict
 from replay_trainer.data import ObsActDataset, SkillDataset
 
 
-def get_obsact_dataloaders(dataset_dir, batch_size=1024, num_workers=24):
+def get_obsact_dataloaders(dataset_dir, batch_size=1024, num_workers=24, cut_filecount_to=None):
     print("Loading train and test datasets...")
     # initialize data
     filenames = []
@@ -17,7 +17,8 @@ def get_obsact_dataloaders(dataset_dir, batch_size=1024, num_workers=24):
         filenames.append(filename.split(".")[0])
 
     # TEMP
-    filenames = filenames[:1000]
+    if cut_filecount_to is not None:
+        filenames = filenames[:cut_filecount_to]
     train_filenames, test_filenames = train_test_split(filenames, test_size=0.2)
 
     train_dataset = ObsActDataset(dataset_dir, train_filenames)
