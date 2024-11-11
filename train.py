@@ -5,7 +5,7 @@ import os
 from sklearn.model_selection import train_test_split
 
 from replay_trainer.data import get_obsact_dataloaders
-from replay_trainer.models import FCN, Transformer, PhysicsTransformer
+from replay_trainer.models import FCN, Transformer, PhysicsTransformer, TransformerCLS
 from replay_trainer import Trainer
 from replay_trainer.util import count_parameters
 
@@ -55,6 +55,13 @@ def train(dataset_dir):
     #     action_size=action_size,
     #     config=model_config,
     # )
+
+    model = PolicyWrapper(TransformerCLS(
+        obs_size=obs_size,
+        action_size=action_size,
+        objective="classification",
+        config=model_config,
+    ))
     trainer = Trainer(model, train_loader, test_loader, trainer_config, device)
 
     print("Training model...")
@@ -64,3 +71,4 @@ def train(dataset_dir):
 if __name__ == "__main__":
     dataset_dir = "dataset/ssl-1v1-8k"
     train(dataset_dir)
+    print("Training complete.")
